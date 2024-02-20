@@ -1,0 +1,72 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+  - cron: '0 4 * * *'
+
+jobs:
+  test:
+    
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php: [7.4, 7.3]
+        laravel: [7.*]
+        phpunit: [9.*]
+        dependency-version: [prefer-lowest, prefer-stable]
+        include:
+        - laravel: 7.*
+          php: 7.4
+          phpunit: 9.0
+          dependency-version: prefer-stable
+        - laravel: 6.*
+          php: 7.3
+          phpunit: 9.0
+          dependency-version: prefer-stable
+        - laravel: 7.*
+          php: 7.2
+          phpunit: 8.*
+          dependency-version: prefer-stable
+
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.dependency-version }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install Librdkafka
+      run: |
+        wget -qO - https://packages.confluent.io/deb/5.4/archive.key | sudo apt-key add -
+        sudo add-apt-repository "deb [arch=amd64] https://packages.confluent.io/deb/5.4 stable main"
+        sudo apt-get update
+        sudo apt-get install librdkafka-dev
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php }}
+        tools: composer, pecl
+        extensions: curl, libxml, mbstring, zip, bcmath, rdkafka
+        coverage: pcov
+
+    - name: Install dependencies
+      run: |
+        composer remove phpro/grumphp --no-interaction --no-update --dev
+        composer require "laravel/framework:${{ matrix.laravel }}" "phpunit/phpunit:${{ matrix.phpunit }}" --no-interaction --no-update
+        composer update --${{ matrix.dependency-version }} --prefer-dist --no-interaction --no-suggest
+
+    - name: Execute Unit Tests
+      run: composer test -- --coverage-clover coverage/coverage.xml
+
+    - name: Check PSR-12 Codestyle
+      run: composer lint
+
+    - name: Upload Coverage
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage/coverage.xml
+        fail_ci_if_error: true
