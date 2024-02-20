@@ -7,7 +7,7 @@ return [
     'driver' => 'kafka',
 
     /*
-     * The name of the kafka connection.
-     */ 
+     * The name of the kafka connection .
+     */
     'connection' => env('KAFKA_QUEUE_CONNECTION', 'default'),
 ];
