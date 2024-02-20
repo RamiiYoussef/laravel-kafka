@@ -56,7 +56,7 @@ jobs:
       run: composer test -- --coverage-clover coverage/coverage.xml
 
     #- name: Check PSR-12 Codestyle
-    #  run: composer lint
+    #  run: composer lint 
 
     - name: Upload Coverage
       uses: codecov/codecov-action@v1
