@@ -18,6 +18,7 @@
     "require": {
         "php": ">=8.1",
         "ext-rdkafka": "*",
+        "enqueue/rdkafka": "^0.10",
         "graham-campbell/manager": "^5.1"
     },
     "require-dev": {
