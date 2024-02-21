@@ -17,9 +17,13 @@ jobs:
         dependency-version: [prefer-stable]
         include:
         - laravel: 10.*
+          php: 8.2
           phpunit: 9.6
+          dependency-version: prefer-stable
         - laravel: 9.*
+          php: 8.1
           phpunit: 9.6
+          dependency-version: prefer-stable
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.dependency-version }}
 
