@@ -5,6 +5,7 @@ namespace RamiiYoussef\Kafka;
 use Psr\Log\LoggerInterface;
 use GrahamCampbell\Manager\AbstractManager;
 use Illuminate\Contracts\Config\Repository;
+use Illuminate\Support\Arr;
 use RamiiYoussef\Kafka\Contracts\Factory;
 use RamiiYoussef\Kafka\Processor\BindsProcessors;
 use RamiiYoussef\Kafka\Processor\ProcessesMessages;
@@ -59,7 +60,7 @@ class KafkaManager extends AbstractManager implements Factory, BindsProcessors
      *
      * @return \RamiiYoussef\Kafka\Contracts\Kafka
      */
-    protected function createConnection(array $config)
+    protected function createConnection(array $config): object
     {
         return new Kafka(
             $config,
@@ -69,13 +70,13 @@ class KafkaManager extends AbstractManager implements Factory, BindsProcessors
             $this->log
         );
     }
-
+    
     /**
      * Get the configuration name.
      *
      * @return string
      */
-    protected function getConfigName()
+    protected function getConfigName(): string
     {
         return 'kafka';
     }
@@ -89,7 +90,7 @@ class KafkaManager extends AbstractManager implements Factory, BindsProcessors
      *
      * @return array
      */
-    public function getConnectionConfig(string $name = null)
+    public function getConnectionConfig(string $name = null): array
     {
         $name = $name ?: $this->getDefaultConnection();
 

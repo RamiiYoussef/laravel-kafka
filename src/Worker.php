@@ -603,7 +603,7 @@ class Worker
     protected function getTimestampOfLastQueueRestart()
     {
         if ($this->cache) {
-            return $this->cache->get('kafkaesk:kafka:restart');
+            return $this->cache->get('ramiiyoussef:kafka:restart');
         }
     }
 

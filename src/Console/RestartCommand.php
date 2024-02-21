@@ -51,7 +51,7 @@ class RestartCommand extends Command
      */
     public function handle()
     {
-        $this->cache->forever('kafkaesk:kafka:restart', $this->currentTime());
+        $this->cache->forever('ramiiyoussef:kafka:restart', $this->currentTime());
 
         $this->info('Broadcasting kafka consumer restart signal.');
     }

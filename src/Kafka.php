@@ -36,6 +36,11 @@ class Kafka implements KafkaContract
     private $log;
 
     /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    private array $subscribedTopics;
+
+    /**
      * Kafka constructor
      *
      * @param array $config
