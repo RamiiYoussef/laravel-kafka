@@ -28,7 +28,7 @@ class Worker
      * @var \RamiiYoussef\Kafka\Contracts\Factory
      */
     protected $manager;
-    
+
     /**
      * The event dispatcher instance.
      *

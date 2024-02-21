@@ -196,7 +196,6 @@ class Kafka implements KafkaContract
         if (is_null($topic)) {
             return [$this->config['topic']];
         }
-        
         return is_array($topic) ? $topic : [$topic];
     }
 

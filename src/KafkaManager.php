@@ -70,7 +70,7 @@ class KafkaManager extends AbstractManager implements Factory, BindsProcessors
             $this->log
         );
     }
-    
+
     /**
      * Get the configuration name.
      *
