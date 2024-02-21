@@ -68,7 +68,7 @@ class ServiceProvider extends BaseServiceProvider implements DeferrableProvider
             'kafka'
         );
     }
-    
+
     /**
      * Register rdkafka.
      *
