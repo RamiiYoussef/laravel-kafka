@@ -34,7 +34,7 @@ class ServiceProvider extends BaseServiceProvider implements DeferrableProvider
     {
         $this->publishes([
             __DIR__ . '/../config/kafka.php' => config_path('kafka.php'),
-        ]);
+        ], 'laravel-kafka-config');
     }
 
     /**
@@ -233,7 +233,7 @@ class ServiceProvider extends BaseServiceProvider implements DeferrableProvider
     private function registerConnector($manager, $container)
     {
         $manager->addConnector('kafka', function () use ($container) {
-            return new KafkaConnector($container, $container['log']);
+            return new KafkaConnector($container['kafka'], $container['log']);
         });
     }
 
