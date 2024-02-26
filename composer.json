@@ -4,6 +4,12 @@
     "type": "library",
     "license": "MIT",
     "version": "1.0.1",
+    "keywords": [
+        "php",
+        "laravel",
+        "kafka",
+        "queue"
+    ],
     "authors": [
         {
             "name": "Rami Youssef",
@@ -18,18 +24,17 @@
     "require": {
         "php": ">=8.1",
         "ext-rdkafka": "*",
-        "enqueue/rdkafka": "^0.10",
-        "graham-campbell/manager": "^5.1"
+        "ext-json": "*"
     },
     "require-dev": {
-        "graham-campbell/analyzer": "^4.1",
-        "graham-campbell/testbench": "^6.1",
-        "hamcrest/hamcrest-php": "^2.0",
-        "kwn/php-rdkafka-stubs": "^2.2",
         "mockery/mockery": "^1.6",
         "phpro/grumphp": "^2.5",
         "phpunit/phpunit": "^9.6",
-        "squizlabs/php_codesniffer": "^3.9"
+        "squizlabs/php_codesniffer": "^3.9",
+        "phpstan/phpstan-mockery": "^1.0",
+        "slevomat/coding-standard": "^6.4",
+        "orchestra/testbench": "^7.33.0 || ^8.13.0 || ^9.0.0",
+        "larastan/larastan": "^2.9"
     },
     "autoload": {
         "psr-4": {
@@ -44,7 +49,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "RamiiYoussef\\Kafka\\ServiceProvider"
+                "RamiiYoussef\\Kafka\\KafkaServiceProvider"
             ]
         }
     },
@@ -52,7 +57,8 @@
     "prefer-stable": true,
     "config": {
         "allow-plugins": {
-            "phpro/grumphp": true
+            "phpro/grumphp": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
         }
     }
 }

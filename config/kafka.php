@@ -10,13 +10,18 @@ return [
             /**
              * The name of default topic.
              */
-            'topic' => env('KAFKA_TOPIC', 'default'),
+            'topic' => 123,//env('KAFKA_TOPIC', 'default'),
 
             /**
              * The group of where the consumer in resides.
              */
             'consumer_group_id' => env('KAFKA_CONSUMER_GROUP_ID', 'laravel'),
 
+            /**
+             * Debug Mode
+             */
+            'kafka_debug' => env('KAFKA_DEBUG', true),
+            
             /**
              * The consumer timeout
              */

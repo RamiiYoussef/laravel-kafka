@@ -2,297 +2,209 @@
 
 namespace RamiiYoussef\Kafka\Queue;
 
-use Exception;
-use ErrorException;
+use Illuminate\Contracts\Queue\Queue as QueueInterface;
 use Illuminate\Queue\Queue;
-use Illuminate\Contracts\Queue\Queue as QueueContract;
-use Psr\Log\LoggerInterface;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RamiiYoussef\Kafka\Consumer;
-use RamiiYoussef\Kafka\Message;
-use RamiiYoussef\Kafka\Contracts\Kafka;
-use RamiiYoussef\Kafka\Exceptions\KafkaException;
+use RamiiYoussef\Kafka\Producer;
+use RuntimeException;
+use Throwable;
 
-class KafkaQueue extends Queue implements QueueContract
+class KafkaQueue extends Queue implements QueueInterface
 {
-    /**
-     * @var string
-     */
-    protected $defaultQueue;
+    /** @var Producer */
+    private Producer $producer;
+
+    /** @var Consumer */
+    private Consumer $consumer;
+
+    /** @var string */
+    private string $defaultQueue;
 
     /**
-     * @var int
+     * @param Producer $producer
+     * @param Consumer $consumer
+     * @param string $defaultQueue
      */
-    protected $sleepOnError;
-
-    /**
-     * @var array
-     */
-    protected $config;
-
-    /**
-     * @var string
-     */
-    private $correlationId;
-
-    /**
-     * @var \RamiiYoussef\Kafka\Contracts\Kafka
-     */
-    private $kafka;
-    
-    /**
-     * @var \Psr\Log\LoggerInterface
-     */
-    private $log;
-
-    /**
-     * @var array
-     */
-    private $topics = [];
-
-    /**
-     * @var \RamiiYoussef\Kafka\Consumer[]
-     */
-    private $consumers = [];
-
-    /**
-     * @param \RamiiYoussef\Kafka\Contracts\Kafka  $kafka
-     * @param array  $config
-     * @param \Psr\Log\LoggerInterface  $log
-     */
-    public function __construct(Kafka $kafka, array $config, LoggerInterface $log)
+    public function __construct(Producer $producer, Consumer $consumer, string $defaultQueue)
     {
-        $this->defaultQueue = $config['queue'];
-        $this->sleepOnError = isset($config['sleep_on_error']) ? $config['sleep_on_error'] : 5;
-
-        $this->kafka = $kafka;
-        $this->config = $config;
-        $this->log = $log;
-
-        $this->consumers = [];
+        $this->producer = $producer;
+        $this->consumer = $consumer;
+        $this->defaultQueue = $defaultQueue;
     }
 
     /**
-     * Get the size of the queue.
-     *
-     * @param  string|null  $queue
+     * @param string|null $queue
      * @return int
      */
-    public function size($queue = null)
+    public function size($queue = null): int
     {
-        //Since Kafka is an infinite queue we can't count the size of the queue.
-        return 1;
+        Log::warning('Kafka queue does not support retrieving size');
+
+        return 0;
     }
 
     /**
-     * Push a new job onto the queue.
-     *
-     * @param  string|object  $job
-     * @param  mixed  $data
-     * @param  string|null  $queue
-     * @return mixed
+     * @param string|object $job
+     * @param mixed $data
+     * @param string|null $queue
+     * @return mixed|null
+     * @throws Throwable
      */
     public function push($job, $data = '', $queue = null)
     {
-        return $this->pushRaw($this->createPayload($job, $queue, $data), $queue, []);
+        $topic = $this->getTopic($queue);
+
+        return $this->pushRaw(
+            $this->createPayload($job, $topic, $data),
+            $topic
+        );
     }
 
     /**
-     * Push a raw payload onto the queue.
-     *
-     * @param  string  $payload
-     * @param  string|null  $queue
-     * @param  array  $options
+     * @param string $payload
+     * @param string|null $queue
+     * @param array $options
      * @return mixed
+     * @throws Throwable
      */
     public function pushRaw($payload, $queue = null, array $options = [])
     {
-        try {
-            if (isset($options['attempts'])) {
-                $payload = json_decode($payload, true);
-                $payload['attempts'] = $options['attempts'];
-                $payload = json_encode($payload);
-            }
+        $this->producer->produce(
+            $queue,
+            $payload,
+            data_get($options, 'available_at')
+        );
 
-            $topic = $this->getQueueName($queue);
-            $pushRawCorrelationId = $this->getCorrelationId();
-
-            $message = new Message(
-                $pushRawCorrelationId,
-                $topic,
-                $payload,
-                RD_KAFKA_PARTITION_UA
-            );
-
-            $this->kafka->produce($message);
-
-            return $pushRawCorrelationId;
-        } catch (ErrorException $exception) {
-            $this->reportConnectionError('pushRaw', $exception);
-        }
+        return data_get(json_decode($payload), 'uuid') ?? null;
     }
 
     /**
-     * Push a new job onto the queue after a delay.
-     *
-     * @param  \DateTimeInterface|\DateInterval|int  $delay
-     * @param  string|object  $job
-     * @param  mixed  $data
-     * @param  string|null  $queue
+     * @param mixed $delay
+     * @param mixed $job
+     * @param mixed $data
+     * @param mixed $queue
      * @return mixed
+     * @throws Throwable
      */
     public function later($delay, $job, $data = '', $queue = null)
     {
-        throw new KafkaException('Later not yet implemented');
+        $topic = $this->getTopic($queue, true);
+
+        return $this->pushRaw(
+            $this->createPayload($job, $topic, $data),
+            $topic,
+            ['available_at' => (string)$this->availableAt($delay)]
+        );
     }
 
     /**
-     * Pop the next job off of the queue.
-     *
-     * @param  string|null  $queue
-     * @return \Illuminate\Contracts\Queue\Job|null
+     * @param int $delay
+     * @param KafkaJob $kafkaJob
+     */
+    public function release($delay, $kafkaJob)
+    {
+        $body = $kafkaJob->payload();
+        /*
+         * Some jobs don't have the command set, so fall back to just sending it the job name string
+         */
+        if (isset($body['data']['command']) === true) {
+            $job = unserialize($body['data']['command']);
+        } else {
+            $job = $kafkaJob->getName();
+        }
+        $data = $body['data'];
+
+        $topic = $this->getTopic($kafkaJob->getQueue(), true);
+        $payload = $this->createPayload($job, $topic, $data);
+        $payloadAr = json_decode($payload, true);
+        $payloadAr['attempts'] = $kafkaJob->attempts();
+        $payload = json_encode($payloadAr, \JSON_UNESCAPED_UNICODE);
+        $options = $delay ? ['available_at' => (string)$this->availableAt($delay)] : [];
+        return $this->pushRaw($payload, $topic, $options);
+    }
+
+    /**
+     * @param string|null $queue
+     * @return KafkaJob|void
+     * @throws RuntimeException
+     * @throws Throwable
      */
     public function pop($queue = null)
     {
-        try {
-            $queue = $this->getQueueName($queue);
-            $consumer = $this->resolveConsumer($queue);
+        return $this->popNextJob($queue);
+    }
 
-            if (null === ($message = $consumer->receive())) {
+    /**
+     * @param string|null $queue
+     * @param string|null $firstRequeuedJobId
+     * @return KafkaJob|null
+     * @throws Throwable
+     */
+    private function popNextJob(string $queue = null, string $firstRequeuedJobId = null): ?KafkaJob
+    {
+        $message = $this->consumer->consume($this->getTopic($queue));
+
+        if ($message === null) {
+            return null;
+        }
+
+        $job = new KafkaJob($this->container, $this, $message->payload, $message->topic_name, $message, $this->connectionName);
+
+        return $this->ensureJobCanBeProcessed($job, $queue, $firstRequeuedJobId);
+    }
+
+    /**
+     * @param KafkaJob $job
+     * @param string|null $queue
+     * @param string|null $firstRequeuedJobId
+     * @return KafkaJob|null
+     * @throws Throwable
+     */
+    private function ensureJobCanBeProcessed(
+        KafkaJob $job,
+        ?string $queue,
+        ?string $firstRequeuedJobId
+    ): ?KafkaJob {
+        if ($job->getMessageTimestamp() > now()->timestamp) {
+            $this->requeueJob($queue, $job);
+
+            if ($job->uuid() === $firstRequeuedJobId) {
                 return null;
             }
-            
-            return new KafkaJob(
-                $this,
-                $message,
-                $this->connectionName,
-                $queue ?: $this->defaultQueue,
-                $consumer
-            );
-        } catch (\RdKafka\Exception $exception) {
-            throw new KafkaException('Could not pop from the queue', 0, $exception);
+
+            return $this->popNextJob($queue, $firstRequeuedJobId ?? $job->uuid());
         }
+
+        $this->consumer->commitOffset();
+
+        return $job;
     }
 
     /**
-      * Release a reserved job back onto the queue.
-      *
-      * @param  \DateTimeInterface|\DateInterval|int $delay
-      * @param  string|object $job
-      * @param  mixed $data
-      * @param  string $queue
-      * @param  int $attempts
-      *
-      * @return mixed
-      */
-    public function releaseBack($delay, $job, $data, $queue, $attempts = 0)
-    {
-        if ($delay > 0) {
-            return $this->later($delay, $job, $data, $queue);
-        } else {
-            return $this->pushRaw($this->createPayload($job, $data), $queue, [
-                'attempts' => $attempts,
-            ]);
-        }
-    }
-
-    /**
-     * Get the cached consumer for the given queue name
-     *
-     * @param  string|null  $queue
-     * @return Consumer
+     * @param string|null $queue
+     * @param KafkaJob $job
+     * @return void
+     * @throws Throwable
      */
-    private function resolveConsumer($queue): Consumer
+    private function requeueJob(?string $queue, KafkaJob $job): void
     {
-        $topic = $this->getQueueName($queue);
-
-        if (!isset($this->consumers[$topic])) {
-            $consumer = $this->kafka->consumer($topic);
-            $this->consumers[$topic] = $consumer;
-            return $consumer;
-        }
-
-        return $this->consumers[$topic];
+        $this->producer->produce(
+            $this->getTopic($queue, true),
+            $job->getRawBody(),
+            $job->getMessageTimestamp(),
+            fn() => $this->consumer->commitOffset()
+        );
     }
 
     /**
-     * @param string $queue
-     *
+     * @param string|null $queue
+     * @param bool $isDelayed
      * @return string
      */
-    private function getQueueName($queue)
+    private function getTopic(?string $queue, bool $isDelayed = false): string
     {
-        return $queue ?: $this->defaultQueue;
-    }
-
-    /**
-     * Sets the correlation id for a message to be published.
-     *
-     * @param string $id
-     */
-    public function setCorrelationId($id)
-    {
-        $this->correlationId = $id;
-    }
-
-    /**
-     * Retrieves the correlation id, or a unique id.
-     *
-     * @return string
-     */
-    public function getCorrelationId()
-    {
-        return $this->correlationId ?: uniqid('', true);
-    }
-
-    /**
-     * @return array
-     */
-    public function getConfig()
-    {
-        return $this->config;
-    }
-
-    /**
-     * Create a payload array from the given job and data.
-     *
-     * @param  string $job
-     * @param  string $queue
-     * @param  mixed $data
-     *
-     * @return array
-     */
-    protected function createPayloadArray($job, $queue = null, $data = '')
-    {
-        return array_merge(parent::createPayloadArray($job, $queue, $data), [
-            'id' => $this->getCorrelationId(),
-            'attempts' => 0,
-        ]);
-    }
-
-    /**
-     * @param string $action
-     * @param Exception $e
-     *
-     * @throws \RamiiYoussef\Kafka\Exceptions\KafkaException
-     */
-    protected function reportConnectionError($action, Exception $e)
-    {
-        $this->log->error("Kafka error while attempting {$action}: {$e->getMessage()}");
-
-        // If it's set to false, throw an error rather than waiting
-        if ($this->sleepOnError === false) {
-            throw new KafkaException('Error writing data to the connection with Kafka');
-        }
-
-        // Sleep so that we don't flood the log file
-        sleep($this->sleepOnError);
-    }
-
-    /**
-     * @return \RdKafka\Consumer
-     */
-    public function getConsumer()
-    {
-        return $this->consumer;
+        return $queue ?? $this->defaultQueue;
     }
 }
