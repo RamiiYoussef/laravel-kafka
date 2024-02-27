@@ -16,7 +16,7 @@ use RamiiYoussef\Kafka\Queue\KafkaConnector;
 use RamiiYoussef\Kafka\Console\ConsumeCommand;
 use RamiiYoussef\Kafka\Console\RestartCommand;
 
-class ServiceProvider extends BaseServiceProvider implements DeferrableProvider
+class KafkaServiceProviderBK extends BaseServiceProvider implements DeferrableProvider
 {
     /**
      * Is sig enabled
