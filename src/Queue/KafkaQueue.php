@@ -150,7 +150,14 @@ class KafkaQueue extends Queue implements QueueInterface
             return null;
         }
 
-        $job = new KafkaJob($this->container, $this, $message->payload, $message->topic_name, $message, $this->connectionName);
+        $job = new KafkaJob(
+            $this->container,
+            $this,
+            $message->payload,
+            $message->topic_name,
+            $message,
+            $this->connectionName
+        );
 
         return $this->ensureJobCanBeProcessed($job, $queue, $firstRequeuedJobId);
     }

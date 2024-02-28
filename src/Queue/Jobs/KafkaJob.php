@@ -104,5 +104,4 @@ class KafkaJob extends Job implements JobInterface
         $this->delete();
         $this->kafkaQueue->release($delay, $this);
     }
-
 }
