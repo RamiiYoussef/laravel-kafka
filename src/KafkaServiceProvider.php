@@ -14,6 +14,10 @@ class KafkaServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->publishes([
+            __DIR__ . '/../config/kafka.php' => config_path('kafka.php'),
+        ], 'laravel-queue-kafka-config');
+
         $this->app['queue']->addConnector('kafka', function () {
             return new KafkaConnector();
         });

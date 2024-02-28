@@ -5,6 +5,7 @@
 
 ### Laravel ###
 /vendor/
+composer.lock
 
 ### macOS ###
 # General
