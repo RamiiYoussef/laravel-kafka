@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     'default' => env('KAFKA_CONNECTION', 'default'),
 
     'connections' => [
@@ -10,7 +9,7 @@ return [
             /**
              * The name of default topic.
              */
-            'topic' => 123,//env('KAFKA_TOPIC', 'default'),
+            'topic' => env('KAFKA_TOPIC', 'default'),
 
             /**
              * The group of where the consumer in resides.
@@ -21,7 +20,7 @@ return [
              * Debug Mode
              */
             'kafka_debug' => env('KAFKA_DEBUG', true),
-            
+
             /**
              * The consumer timeout
              */

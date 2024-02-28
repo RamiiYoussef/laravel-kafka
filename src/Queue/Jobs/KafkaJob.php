@@ -3,9 +3,10 @@
 namespace RamiiYoussef\Kafka\Queue\Jobs;
 
 use Illuminate\Container\Container;
-use Illuminate\Queue\Jobs\Job;
 use Illuminate\Contracts\Queue\Job as JobInterface;
-use Illuminate\Support\Str;
+use Illuminate\Queue\Jobs\Job;
+use RamiiYoussef\Kafka\Exception;
+use RamiiYoussef\Kafka\Queue\KafkaQueue;
 use Rapide\LaravelQueueKafka\Exceptions\QueueKafkaException;
 use RdKafka\Message;
 

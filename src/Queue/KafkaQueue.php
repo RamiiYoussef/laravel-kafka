@@ -5,9 +5,9 @@ namespace RamiiYoussef\Kafka\Queue;
 use Illuminate\Contracts\Queue\Queue as QueueInterface;
 use Illuminate\Queue\Queue;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use RamiiYoussef\Kafka\Consumer;
 use RamiiYoussef\Kafka\Producer;
+use RamiiYoussef\Kafka\Queue\Jobs\KafkaJob;
 use RuntimeException;
 use Throwable;
 

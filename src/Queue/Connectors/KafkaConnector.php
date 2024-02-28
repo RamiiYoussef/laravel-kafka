@@ -4,9 +4,9 @@ namespace RamiiYoussef\Kafka\Queue\Connectors;
 
 use Illuminate\Queue\Connectors\ConnectorInterface;
 use RamiiYoussef\Kafka\Consumer;
-use RamiiYoussef\Kafka\Queue\QueueConfig;
 use RamiiYoussef\Kafka\Producer;
 use RamiiYoussef\Kafka\Queue\KafkaQueue;
+use RamiiYoussef\Kafka\Queue\QueueConfig;
 
 class KafkaConnector implements ConnectorInterface
 {

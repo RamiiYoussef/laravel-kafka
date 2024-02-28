@@ -12,10 +12,38 @@ class KafkaServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function boot()
+    public function boot(): void
     {
         $this->app['queue']->addConnector('kafka', function () {
             return new KafkaConnector();
         });
+    }
+
+    /**
+     * Register the service provider.
+     *
+     * @return void
+     */
+    public function register(): void
+    {
+        $this->registerConfig();
+    }
+
+    /**
+     * Setup the config.
+     *
+     * @return void
+     */
+    public function registerConfig(): void
+    {
+        $this->mergeConfigFrom(
+            __DIR__ . '/../config/queue.php',
+            'queue.connections'
+        );
+
+        $this->mergeConfigFrom(
+            __DIR__ . '/../config/kafka.php',
+            'kafka'
+        );
     }
 }

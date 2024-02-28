@@ -14,13 +14,6 @@ composer require ramiiyoussef/laravel-kafka
 
 This package is using Laravel's package auto-discovery, so it doesn't require you to manually add the ServiceProvider. If you've opted out of this feature, add the ServiceProvider to the providers array in config/app.php:
 
-```php
-RamiiYoussef\Kafka\KafkaServiceProvider::class,
-```
-
-```bash
-php artisan vendor:publish --provider="RamiiYoussef\Kafka\KafkaServiceProvider"
-```
 
 ## Licence
 
